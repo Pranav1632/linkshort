@@ -1,9 +1,28 @@
 const { query } = require('../config/db');
 const { generateShortCode } = require('../utils/codeGenerator');
 const cacheService = require('./cacheService');
+const { cacheHitsTotal, cacheMissesTotal } = require('../metrics/prometheus');
+const { createCircuitBreaker } = require('./circuitBreaker');
 
 /**
- * Service for Link operations with Redis Cache-Aside optimization & Analytics
+ * Raw database query function for fetching a link by shortCode
+ */
+async function queryLinkFromDb(shortCode) {
+  const sql = `
+    SELECT id, short_code, original_url, created_at
+    FROM links
+    WHERE short_code = $1;
+  `;
+  const result = await query(sql, [shortCode]);
+  return result.rows[0] || null;
+}
+
+// Wrap database query with Circuit Breaker resilience
+const dbLinkBreaker = createCircuitBreaker(queryLinkFromDb, 'postgres_links_query');
+dbLinkBreaker.fallback(() => null);
+
+/**
+ * Service for Link operations with Redis Cache-Aside optimization, Circuit Breakers & Analytics
  */
 class LinkService {
   /**
@@ -56,7 +75,7 @@ class LinkService {
   }
 
   /**
-   * Find a link by its short code using the Cache-Aside Pattern
+   * Find a link by its short code using Cache-Aside + Circuit Breaker
    * @param {string} shortCode
    * @returns {Promise<{link: Object|null, source: 'cache'|'database'}>}
    */
@@ -66,18 +85,20 @@ class LinkService {
     // 1. Cache Lookup (Cache Hit)
     const cachedLink = await cacheService.get(cacheKey);
     if (cachedLink) {
+      cacheHitsTotal.inc({ cache_key_prefix: 'link' });
       return { link: cachedLink, source: 'cache' };
     }
 
-    // 2. Database Fallback (Cache Miss)
-    const sql = `
-      SELECT id, short_code, original_url, created_at
-      FROM links
-      WHERE short_code = $1;
-    `;
+    // 2. Database Fallback (Cache Miss) protected by Circuit Breaker
+    cacheMissesTotal.inc({ cache_key_prefix: 'link' });
 
-    const result = await query(sql, [shortCode]);
-    const link = result.rows[0] || null;
+    let link = null;
+    try {
+      link = await dbLinkBreaker.fire(shortCode);
+    } catch (err) {
+      console.error('[LinkService] Circuit breaker caught DB error:', err.message);
+      link = null;
+    }
 
     // 3. Populate Redis Cache on Miss
     if (link) {

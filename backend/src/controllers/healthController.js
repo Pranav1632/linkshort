@@ -1,5 +1,6 @@
 const { checkDbHealth } = require('../config/db');
 const { checkRedisHealth } = require('../config/redis');
+const { getBreakerStatus } = require('../services/circuitBreaker');
 
 /**
  * Multi-service health monitoring controller
@@ -24,6 +25,7 @@ class HealthController {
       redisStatus = `unhealthy: ${err.message}`;
     }
 
+    const breakers = getBreakerStatus();
     const isHealthy = dbStatus === 'healthy' && redisStatus === 'healthy';
 
     const payload = {
@@ -33,6 +35,7 @@ class HealthController {
         api: 'healthy',
         database: dbStatus,
         cache: redisStatus,
+        circuitBreakers: breakers,
       },
     };
 
