@@ -1,0 +1,14 @@
+{
+  "name": "linkshort-worker",
+  "version": "1.0.0",
+  "description": "Background analytics and BullMQ job processor for LinkShort",
+  "main": "src/worker.js",
+  "scripts": {
+    "start": "node src/worker.js"
+  },
+  "dependencies": {
+    "bullmq": "^5.8.0",
+    "ioredis": "^5.4.1",
+    "pg": "^8.11.5"
+  }
+}
