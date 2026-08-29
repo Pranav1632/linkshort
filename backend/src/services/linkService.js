@@ -3,7 +3,7 @@ const { generateShortCode } = require('../utils/codeGenerator');
 const cacheService = require('./cacheService');
 
 /**
- * Service for Link operations with Redis Cache-Aside optimization
+ * Service for Link operations with Redis Cache-Aside optimization & Analytics
  */
 class LinkService {
   /**
@@ -62,6 +62,59 @@ class LinkService {
     }
 
     return { link, source: 'database' };
+  }
+
+  /**
+   * Fetch aggregated analytics for a specific shortCode
+   * @param {string} shortCode
+   */
+  async getLinkAnalytics(shortCode) {
+    const totalSql = `SELECT COUNT(*) as total_clicks FROM clicks WHERE short_code = $1;`;
+    const deviceSql = `
+      SELECT device, COUNT(*) as count 
+      FROM clicks 
+      WHERE short_code = $1 
+      GROUP BY device 
+      ORDER BY count DESC;
+    `;
+    const browserSql = `
+      SELECT browser, COUNT(*) as count 
+      FROM clicks 
+      WHERE short_code = $1 
+      GROUP BY browser 
+      ORDER BY count DESC;
+    `;
+    const countrySql = `
+      SELECT country, COUNT(*) as count 
+      FROM clicks 
+      WHERE short_code = $1 
+      GROUP BY country 
+      ORDER BY count DESC;
+    `;
+    const recentClicksSql = `
+      SELECT id, ip_address, country, city, device, browser, referrer, created_at 
+      FROM clicks 
+      WHERE short_code = $1 
+      ORDER BY created_at DESC 
+      LIMIT 20;
+    `;
+
+    const [totalRes, deviceRes, browserRes, countryRes, recentRes] = await Promise.all([
+      query(totalSql, [shortCode]),
+      query(deviceSql, [shortCode]),
+      query(browserSql, [shortCode]),
+      query(countrySql, [shortCode]),
+      query(recentClicksSql, [shortCode]),
+    ]);
+
+    return {
+      shortCode,
+      totalClicks: parseInt(totalRes.rows[0].total_clicks, 10),
+      devices: deviceRes.rows,
+      browsers: browserRes.rows,
+      countries: countryRes.rows,
+      recentClicks: recentRes.rows,
+    };
   }
 }
 

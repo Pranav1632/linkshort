@@ -13,6 +13,9 @@ const createLinkLimiter = createRateLimiter({
 // POST /api/v1/links - Create new short URL (Rate limited)
 router.post('/', createLinkLimiter, (req, res, next) => linkController.createLink(req, res, next));
 
+// GET /api/v1/links/:shortCode/analytics - Fetch link click analytics
+router.get('/:shortCode/analytics', (req, res, next) => linkController.getAnalytics(req, res, next));
+
 // GET /api/v1/links/:shortCode - Fetch short URL details
 router.get('/:shortCode', (req, res, next) => linkController.getLink(req, res, next));
 

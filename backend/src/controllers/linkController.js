@@ -1,7 +1,7 @@
 const linkService = require('../services/linkService');
 
 /**
- * Controller handling Link management APIs
+ * Controller handling Link management & Analytics APIs
  */
 class LinkController {
   /**
@@ -67,6 +67,23 @@ class LinkController {
         status: 'success',
         source,
         data: link,
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  /**
+   * GET /api/v1/links/:shortCode/analytics
+   */
+  async getAnalytics(req, res, next) {
+    try {
+      const { shortCode } = req.params;
+      const analytics = await linkService.getLinkAnalytics(shortCode);
+
+      return res.status(200).json({
+        status: 'success',
+        data: analytics,
       });
     } catch (err) {
       next(err);

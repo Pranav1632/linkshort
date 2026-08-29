@@ -46,10 +46,11 @@ LinkShort is a containerized, high-concurrency, low-latency URL shortener and an
   * Implemented Cache-Aside pattern (cache redirects in Redis, dropping lookup latency to <1ms).
   * Built a sliding-window rate limiter in Redis to protect routes from abuse.
   * Added `X-Cache-Source` and standard `X-RateLimit-*` response headers.
-- [ ] **Lesson 12: BullMQ Queue & Analytics Background Worker**
-  * Split application into API and Worker containers.
-  * Queue analytics payloads in Redis; process geo-locations in the worker.
-  * Implement database batching to write click events in bulk.
+- [x] **Lesson 12: BullMQ Queue & Analytics Background Worker**
+  * Split application into dedicated API and Worker containers.
+  * Enqueued click analytics payloads asynchronously to Redis BullMQ on redirects without latency penalty.
+  * Background worker consumes jobs, parses user-agent/device/browser, and persists click events to PostgreSQL.
+  * Added link analytics endpoint (`GET /api/v1/links/:shortCode/analytics`).
 - [ ] **Lesson 13: Next.js Frontend Integration & Supabase Auth**
   * Containerize Next.js with development volume mounts.
   * Integrate Supabase JWT Auth to secure endpoints.

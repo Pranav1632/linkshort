@@ -9,6 +9,7 @@
   "dependencies": {
     "bullmq": "^5.8.0",
     "ioredis": "^5.4.1",
-    "pg": "^8.11.5"
+    "pg": "^8.11.5",
+    "ua-parser-js": "^1.0.38"
   }
 }
