@@ -1,0 +1,12 @@
+{
+  "name": "linkshort-gateway",
+  "version": "1.0.0",
+  "description": "High-Performance Load Balancer & API Gateway for LinkShort Replicas",
+  "main": "src/gateway.js",
+  "scripts": {
+    "start": "node src/gateway.js"
+  },
+  "dependencies": {
+    "http-proxy": "^1.18.1"
+  }
+}

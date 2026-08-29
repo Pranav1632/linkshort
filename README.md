@@ -59,9 +59,11 @@ LinkShort is a containerized, high-concurrency, low-latency URL shortener and an
   * Containerized Next.js frontend in Docker Compose on port `3000`.
 
 ### Phase 4: Horizontal Scaling & DevOps Observability
-- [ ] **Lesson 14: Replicas & Load Balancing with Nginx**
-  * Scale Express backend containers to 3 replicas.
-  * Configure Nginx as a reverse proxy round-robin load balancer.
+- [x] **Lesson 14: Replicas & Load Balancing with Gateway / Nginx**
+  * Scaled Express backend into 3 concurrent container replicas (`backend-1`, `backend-2`, `backend-3`).
+  * Built an API Gateway & Load Balancer with Docker internal DNS discovery.
+  * Implemented Round-Robin load distribution and automatic sub-second failover.
+  * Added `X-Served-By` container hostname identification header.
 - [ ] **Lesson 15: Observability, Circuit Breakers, & GitHub Actions CI/CD**
   * Export application metrics via Prometheus.
   * Build Grafana dashboards to monitor latency (p95/p99) and queue backlogs.
