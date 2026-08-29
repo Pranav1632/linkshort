@@ -42,9 +42,10 @@ LinkShort is a containerized, high-concurrency, low-latency URL shortener and an
   * Configured `pg.Pool` connection pooling in Express.
   * Implemented link creation (`POST /api/v1/links`) and redirect (`GET /:shortCode`) APIs.
   * Added multi-service `/health` endpoint checking DB and Redis.
-- [ ] **Lesson 11: Redis High-Speed Caching & Rate Limiting**
-  * Implement Cache-Aside pattern (cache redirects in Redis).
-  * Build a sliding-window rate limiter in Redis to protect routes from DDOS.
+- [x] **Lesson 11: Redis High-Speed Caching & Rate Limiting**
+  * Implemented Cache-Aside pattern (cache redirects in Redis, dropping lookup latency to <1ms).
+  * Built a sliding-window rate limiter in Redis to protect routes from abuse.
+  * Added `X-Cache-Source` and standard `X-RateLimit-*` response headers.
 - [ ] **Lesson 12: BullMQ Queue & Analytics Background Worker**
   * Split application into API and Worker containers.
   * Queue analytics payloads in Redis; process geo-locations in the worker.

@@ -52,7 +52,7 @@ class LinkController {
   async getLink(req, res, next) {
     try {
       const { shortCode } = req.params;
-      const link = await linkService.getLinkByCode(shortCode);
+      const { link, source } = await linkService.getLinkByCode(shortCode);
 
       if (!link) {
         return res.status(404).json({
@@ -61,8 +61,11 @@ class LinkController {
         });
       }
 
+      res.setHeader('X-Cache-Source', source);
+
       return res.status(200).json({
         status: 'success',
+        source,
         data: link,
       });
     } catch (err) {
