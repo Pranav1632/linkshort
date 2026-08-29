@@ -13,10 +13,16 @@ const createLinkLimiter = createRateLimiter({
 // POST /api/v1/links - Create new short URL (Rate limited)
 router.post('/', createLinkLimiter, (req, res, next) => linkController.createLink(req, res, next));
 
+// GET /api/v1/links - List all created short links
+router.get('/', (req, res, next) => linkController.listLinks(req, res, next));
+
 // GET /api/v1/links/:shortCode/analytics - Fetch link click analytics
 router.get('/:shortCode/analytics', (req, res, next) => linkController.getAnalytics(req, res, next));
 
 // GET /api/v1/links/:shortCode - Fetch short URL details
 router.get('/:shortCode', (req, res, next) => linkController.getLink(req, res, next));
+
+// DELETE /api/v1/links/:shortCode - Delete a short link
+router.delete('/:shortCode', (req, res, next) => linkController.deleteLink(req, res, next));
 
 module.exports = router;

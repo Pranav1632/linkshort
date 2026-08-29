@@ -51,10 +51,12 @@ LinkShort is a containerized, high-concurrency, low-latency URL shortener and an
   * Enqueued click analytics payloads asynchronously to Redis BullMQ on redirects without latency penalty.
   * Background worker consumes jobs, parses user-agent/device/browser, and persists click events to PostgreSQL.
   * Added link analytics endpoint (`GET /api/v1/links/:shortCode/analytics`).
-- [ ] **Lesson 13: Next.js Frontend Integration & Supabase Auth**
-  * Containerize Next.js with development volume mounts.
-  * Integrate Supabase JWT Auth to secure endpoints.
-  * Build interactive dashboard charts for link analytics.
+- [x] **Lesson 13: Next.js Frontend Integration & Clerk Authentication**
+  * Built Clerk.com / Dub.co inspired Next.js 14 Dashboard UI with TailwindCSS & Lucide icons.
+  * Integrated Clerk Authentication (`@clerk/nextjs`) with `<SignIn />`, `<SignUp />`, and `<UserButton />`.
+  * Implemented real-time interactive Analytics charts (Recharts) for Device breakdown, Browser breakdown, and live click stream.
+  * Added Short Link creation form with instant copy-to-clipboard and custom slug support.
+  * Containerized Next.js frontend in Docker Compose on port `3000`.
 
 ### Phase 4: Horizontal Scaling & DevOps Observability
 - [ ] **Lesson 14: Replicas & Load Balancing with Nginx**

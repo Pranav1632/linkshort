@@ -47,6 +47,24 @@ class LinkController {
   }
 
   /**
+   * GET /api/v1/links - List all links
+   */
+  async listLinks(req, res, next) {
+    try {
+      const limit = parseInt(req.query.limit, 10) || 50;
+      const offset = parseInt(req.query.offset, 10) || 0;
+      const links = await linkService.listLinks(limit, offset);
+
+      return res.status(200).json({
+        status: 'success',
+        data: links,
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  /**
    * GET /api/v1/links/:shortCode
    */
   async getLink(req, res, next) {
@@ -67,6 +85,30 @@ class LinkController {
         status: 'success',
         source,
         data: link,
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  /**
+   * DELETE /api/v1/links/:shortCode
+   */
+  async deleteLink(req, res, next) {
+    try {
+      const { shortCode } = req.params;
+      const success = await linkService.deleteLink(shortCode);
+
+      if (!success) {
+        return res.status(404).json({
+          status: 'error',
+          error: 'Short link not found',
+        });
+      }
+
+      return res.status(200).json({
+        status: 'success',
+        message: 'Short link deleted successfully',
       });
     } catch (err) {
       next(err);

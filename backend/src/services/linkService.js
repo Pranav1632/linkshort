@@ -31,9 +31,32 @@ class LinkService {
   }
 
   /**
+   * List all short links with their total click count
+   * @param {number} limit
+   * @param {number} offset
+   */
+  async listLinks(limit = 50, offset = 0) {
+    const sql = `
+      SELECT 
+        l.id, 
+        l.short_code, 
+        l.original_url, 
+        l.created_at, 
+        l.updated_at,
+        COUNT(c.id) as click_count
+      FROM links l
+      LEFT JOIN clicks c ON l.id = c.link_id OR l.short_code = c.short_code
+      GROUP BY l.id, l.short_code, l.original_url, l.created_at, l.updated_at
+      ORDER BY l.created_at DESC
+      LIMIT $1 OFFSET $2;
+    `;
+
+    const result = await query(sql, [limit, offset]);
+    return result.rows;
+  }
+
+  /**
    * Find a link by its short code using the Cache-Aside Pattern
-   * 1. Check Redis memory cache (<1ms)
-   * 2. On miss, fallback to PostgreSQL (~20-80ms) and populate Redis
    * @param {string} shortCode
    * @returns {Promise<{link: Object|null, source: 'cache'|'database'}>}
    */
@@ -62,6 +85,17 @@ class LinkService {
     }
 
     return { link, source: 'database' };
+  }
+
+  /**
+   * Delete a short link by code & invalidate cache
+   * @param {string} shortCode
+   */
+  async deleteLink(shortCode) {
+    const sql = `DELETE FROM links WHERE short_code = $1 RETURNING id;`;
+    const result = await query(sql, [shortCode]);
+    await cacheService.del(`link:${shortCode}`);
+    return result.rowCount > 0;
   }
 
   /**
