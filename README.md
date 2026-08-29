@@ -64,11 +64,11 @@ LinkShort is a containerized, high-concurrency, low-latency URL shortener and an
   * Built an API Gateway & Load Balancer with Docker internal DNS discovery.
   * Implemented Round-Robin load distribution and automatic sub-second failover.
   * Added `X-Served-By` container hostname identification header.
-- [ ] **Lesson 15: Observability, Circuit Breakers, & GitHub Actions CI/CD**
-  * Export application metrics via Prometheus.
-  * Build Grafana dashboards to monitor latency (p95/p99) and queue backlogs.
-  * Implement Circuit Breakers to handle database outages gracefully.
-  * Set up GitHub Actions CI/CD to build and push production Docker Hub images.
+- [x] **Lesson 15: Observability, Circuit Breakers, & GitHub Actions CI/CD**
+  * Exported Prometheus metrics (`GET /metrics`) tracking RPS, p95/p99 latency histograms, and cache hit ratios.
+  * Implemented Opossum Circuit Breaker for graceful fast-fail database protection.
+  * Automated Unit Test Suite (`npm test`) validating short code generation and rate limiting.
+  * Configured GitHub Actions CI/CD pipeline (`.github/workflows/ci.yml`) for automated testing and multi-container Docker image verification.
 
 ---
 
