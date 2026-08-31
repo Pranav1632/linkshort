@@ -1,11 +1,22 @@
 {
   "name": "backend",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Dub.co Clone Link Shortener Backend API",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "test": "node test/health.test.js"
+    "test": "node test/health.test.js",
+    "test:e2e": "node test/e2e/run_all.js",
+    "test:e2e:health": "node test/e2e/01_health_check.test.js",
+    "test:e2e:links": "node test/e2e/02_link_creation.test.js",
+    "test:e2e:redirect": "node test/e2e/03_redirection_performance.test.js",
+    "test:e2e:ratelimit": "node test/e2e/04_rate_limiter_stress.test.js",
+    "test:e2e:bullmq": "node test/e2e/05_bullmq_worker.test.js",
+    "test:e2e:analytics": "node test/e2e/06_analytics_reporting.test.js",
+    "test:e2e:lb": "node test/e2e/07_load_balancer.test.js",
+    "test:e2e:chaos": "node test/e2e/08_chaos_failover.test.js",
+    "test:e2e:metrics": "node test/e2e/09_prometheus_metrics.test.js",
+    "test:e2e:frontend": "node test/e2e/10_frontend_dashboard.test.js"
   },
   "dependencies": {
     "bullmq": "^5.8.0",
