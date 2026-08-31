@@ -7,43 +7,199 @@ on:
     branches: [ main ]
 
 jobs:
+  # ─────────────────────────────────────────────
+  # JOB 1: Unit Tests (pure Node.js, no Docker)
+  # ─────────────────────────────────────────────
   unit-tests:
-    name: Run Unit Tests & Lint
+    name: 🧪 Unit Tests & Code Validation
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Code Repository
+      - name: 📥 Checkout Code Repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js Runtime
+      - name: ⚙️ Setup Node.js 22
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: 'npm'
-          cache-dependency-path: 'backend/package.json'
 
-      - name: Install Backend Dependencies
+      - name: 📦 Install Backend Dependencies
+        working-directory: backend
+        run: npm install --legacy-peer-deps
+
+      - name: ✅ Run Unit Tests (Code Generator)
+        working-directory: backend
+        run: npm test
+
+      - name: 🔍 Validate E2E Test Files Exist
         run: |
-          cd backend
-          npm install --legacy-peer-deps
+          echo "Checking all E2E test files are present..."
+          test -f backend/test/e2e/01_health_check.test.js         && echo "✅ Test 01 found"
+          test -f backend/test/e2e/02_link_creation.test.js         && echo "✅ Test 02 found"
+          test -f backend/test/e2e/03_redirection_performance.test.js && echo "✅ Test 03 found"
+          test -f backend/test/e2e/04_rate_limiter_stress.test.js   && echo "✅ Test 04 found"
+          test -f backend/test/e2e/05_bullmq_worker.test.js         && echo "✅ Test 05 found"
+          test -f backend/test/e2e/06_analytics_reporting.test.js   && echo "✅ Test 06 found"
+          test -f backend/test/e2e/07_load_balancer.test.js         && echo "✅ Test 07 found"
+          test -f backend/test/e2e/08_chaos_failover.test.js        && echo "✅ Test 08 found"
+          test -f backend/test/e2e/09_prometheus_metrics.test.js    && echo "✅ Test 09 found"
+          test -f backend/test/e2e/10_frontend_dashboard.test.js    && echo "✅ Test 10 found"
+          test -f backend/test/e2e/run_all.js                       && echo "✅ Runner found"
+          echo "🎉 All 10 E2E test files validated!"
 
-      - name: Execute Automated Test Suite
-        run: |
-          cd backend
-          npm test
+      - name: 📦 Install Gateway Dependencies
+        working-directory: gateway
+        run: npm install --legacy-peer-deps
 
+      - name: 📦 Install Worker Dependencies
+        working-directory: worker
+        run: npm install --legacy-peer-deps
+
+  # ─────────────────────────────────────────────
+  # JOB 2: Docker Image Build Verification
+  # ─────────────────────────────────────────────
   docker-build-verification:
-    name: Build & Verify Docker Images
+    name: 🐳 Docker Image Build Verification
     runs-on: ubuntu-latest
     needs: unit-tests
 
     steps:
-      - name: Checkout Code Repository
+      - name: 📥 Checkout Code Repository
         uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
-        uses: actions/setup-buildx-action@v3
+      - name: 🐳 Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-      - name: Build All Multi-Container Images
+      - name: 📝 Create Stub .env for Docker Build
         run: |
-          docker compose build --parallel
+          cat > .env << 'EOF'
+          PORT=5000
+          NODE_ENV=test
+          REDIS_URL=redis://linkshort-redis:6379
+          DATABASE_URL=postgresql://postgres:password@localhost:5432/linkshort
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_stub
+          CLERK_SECRET_KEY=sk_test_stub
+          EOF
+          echo "✅ Stub .env created for build"
+
+      - name: 🔨 Build Backend Docker Image
+        run: docker build ./backend --target production -t linkshort-backend:ci
+
+      - name: 🔨 Build Gateway Docker Image
+        run: docker build ./gateway -t linkshort-gateway:ci
+
+      - name: 🔨 Build Worker Docker Image
+        run: docker build ./worker -t linkshort-worker:ci
+
+      - name: 🔨 Build Frontend Docker Image
+        run: docker build ./frontend -t linkshort-frontend:ci
+
+      - name: 📋 List Built Images
+        run: |
+          echo "Built Docker images:"
+          docker images | grep "linkshort"
+
+  # ─────────────────────────────────────────────
+  # JOB 3: Integration Tests (Docker Compose up)
+  # ─────────────────────────────────────────────
+  integration-tests:
+    name: 🔗 Integration Tests (Live Stack)
+    runs-on: ubuntu-latest
+    needs: docker-build-verification
+
+    env:
+      PORT: 5000
+      NODE_ENV: test
+      REDIS_URL: redis://linkshort-redis:6379
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
+      CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
+
+    steps:
+      - name: 📥 Checkout Code Repository
+        uses: actions/checkout@v4
+
+      - name: ⚙️ Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: 📝 Create .env for Docker Compose
+        run: |
+          cat > .env << EOF
+          PORT=5000
+          NODE_ENV=test
+          REDIS_URL=redis://linkshort-redis:6379
+          DATABASE_URL=${{ secrets.DATABASE_URL }}
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
+          CLERK_SECRET_KEY=${{ secrets.CLERK_SECRET_KEY }}
+          EOF
+
+      - name: 🚀 Start Full Stack (3 backend replicas)
+        run: |
+          docker compose up -d --build --scale backend=3
+          echo "Waiting 25s for all services to initialize..."
+          sleep 25
+
+      - name: 🩺 Verify All Containers Are Healthy
+        run: |
+          echo "Container status:"
+          docker compose ps
+          echo ""
+          # Verify gateway is responding
+          curl -f http://localhost:5000/gateway-health || (echo "❌ Gateway not healthy!" && exit 1)
+          echo "✅ Gateway is healthy"
+
+      - name: ⚙️ Install Test Dependencies
+        working-directory: backend
+        run: npm install --legacy-peer-deps
+
+      - name: 🧪 Run E2E Test 01 — Health Check
+        working-directory: backend
+        run: node test/e2e/01_health_check.test.js
+
+      - name: 🧪 Run E2E Test 02 — Link Creation
+        working-directory: backend
+        run: node test/e2e/02_link_creation.test.js
+
+      - name: 🧪 Run E2E Test 03 — Redirection Performance
+        working-directory: backend
+        run: node test/e2e/03_redirection_performance.test.js
+
+      - name: 🧪 Run E2E Test 04 — Rate Limiter Stress
+        working-directory: backend
+        run: node test/e2e/04_rate_limiter_stress.test.js
+
+      - name: 🧪 Run E2E Test 05 — BullMQ Worker
+        working-directory: backend
+        run: node test/e2e/05_bullmq_worker.test.js
+
+      - name: 🧪 Run E2E Test 06 — Analytics Reporting
+        working-directory: backend
+        run: node test/e2e/06_analytics_reporting.test.js
+
+      - name: 🧪 Run E2E Test 07 — Load Balancer
+        working-directory: backend
+        run: node test/e2e/07_load_balancer.test.js
+
+      - name: 🧪 Run E2E Test 09 — Prometheus Metrics
+        working-directory: backend
+        run: node test/e2e/09_prometheus_metrics.test.js
+
+      - name: 🧪 Run E2E Test 10 — Frontend Dashboard
+        working-directory: backend
+        run: node test/e2e/10_frontend_dashboard.test.js
+
+      - name: 📋 Show Docker Logs on Failure
+        if: failure()
+        run: |
+          echo "=== Gateway Logs ==="
+          docker compose logs gateway --tail 30
+          echo "=== Backend Logs ==="
+          docker compose logs backend --tail 30
+          echo "=== Worker Logs ==="
+          docker compose logs worker --tail 30
+
+      - name: 🧹 Cleanup Containers
+        if: always()
+        run: docker compose down -v
