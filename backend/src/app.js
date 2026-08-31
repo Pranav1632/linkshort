@@ -10,6 +10,9 @@ const errorHandler = require('./middlewares/errorHandler');
 
 const app = express();
 
+// Trust the gateway/load balancer proxy so req.ip resolves X-Forwarded-For correctly
+app.set('trust proxy', 1);
+
 // 1. Prometheus Metrics Middleware (tracks latency, RPS, status codes)
 app.use(metricsMiddleware);
 

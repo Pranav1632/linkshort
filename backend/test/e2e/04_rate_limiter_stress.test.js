@@ -11,9 +11,10 @@
 const assert = require('assert');
 const http = require('http');
 
-// Use low limit for testing by hitting /api/v1/links (rate-limited)
+// Use POST /api/v1/links — this route has createLinkLimiter (max: 30 req/min)
+// GET /api/v1/links has no rate limit applied
 const PORT = 5000;
-const MAX_REQUESTS = 120; // Send more than the 60 req/min default limit
+const MAX_REQUESTS = 50; // Send more than the 30 req/min POST limit
 const CONCURRENCY = 5;
 
 function httpRequest(method, path, body = null, extraHeaders = {}) {
@@ -61,17 +62,17 @@ async function runRateLimiterTest() {
   const extraHeaders = { 'X-Forwarded-For': fakeIp };
 
   console.log(`📡 Using test IP: ${fakeIp}`);
-  console.log(`📡 Sending ${MAX_REQUESTS} rapid-fire requests to /api/v1/links...`);
-  console.log(`📡 Expected: first ~60 succeed, subsequent trigger HTTP 429\n`);
+  console.log(`📡 Sending ${MAX_REQUESTS} rapid-fire POST requests to /api/v1/links...`);
+  console.log(`📡 Rate limit on POST: 30 req/min — expected: first ~30 succeed, rest trigger HTTP 429\n`);
 
   const results = { ok: 0, rateLimited: 0, errors: 0 };
   let first429 = null;
   let rateLimitHeaders = null;
 
-  // Fire requests in batches
+  // Fire POST requests in batches — POST /api/v1/links has the 30/min rate limiter
   for (let i = 0; i < MAX_REQUESTS; i += CONCURRENCY) {
     const batch = Array.from({ length: CONCURRENCY }, (_, j) =>
-      httpRequest('GET', '/api/v1/links', null, extraHeaders)
+      httpRequest('POST', '/api/v1/links', { originalUrl: 'https://example.com' }, extraHeaders)
     );
     const responses = await Promise.all(batch);
 
