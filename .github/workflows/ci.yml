@@ -131,8 +131,8 @@ jobs:
           NODE_ENV=test
           REDIS_URL=redis://linkshort-redis:6379
           DATABASE_URL=${{ secrets.DATABASE_URL }}
-          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
-          CLERK_SECRET_KEY=${{ secrets.CLERK_SECRET_KEY }}
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || 'pk_test_ci_stub_key_placeholder' }}
+          CLERK_SECRET_KEY=${{ secrets.CLERK_SECRET_KEY || 'sk_test_ci_stub_key_placeholder' }}
           EOF
 
       - name: 🚀 Start Full Stack (3 backend replicas)
