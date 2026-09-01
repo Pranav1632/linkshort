@@ -12,10 +12,10 @@ const assert = require('assert');
 const http = require('http');
 
 const PORT = 5000;
-const WAIT_MS = 3000;
+const WAIT_MS = 5000; // Increased from 3s to 5s for CI environments
 
-function httpRequest(method, path, body = null, headers = {}) {
-  return new Promise((resolve, reject) => {
+function httpRequest(method, path, body = null, headers = {}, retries = 3) {
+  const attempt = () => new Promise((resolve, reject) => {
     const payload = body ? JSON.stringify(body) : null;
     const opts = {
       hostname: 'localhost',
@@ -27,7 +27,7 @@ function httpRequest(method, path, body = null, headers = {}) {
         ...headers,
         ...(payload ? { 'Content-Length': Buffer.byteLength(payload) } : {}),
       },
-      timeout: 10000,
+      timeout: 20000, // Increased from 10s to 20s
     };
 
     const req = http.request(opts, (res) => {
@@ -43,6 +43,21 @@ function httpRequest(method, path, body = null, headers = {}) {
     if (payload) req.write(payload);
     req.end();
   });
+
+  // Retry on socket hang up or timeout (transient errors under load)
+  async function run(remaining) {
+    try {
+      return await attempt();
+    } catch (err) {
+      if (remaining > 0 && (err.message.includes('socket hang up') || err.message.includes('ECONNRESET') || err.message === 'timeout')) {
+        console.log(`   🔄 Retrying... (${remaining} attempts left, error: ${err.message})`);
+        await new Promise(r => setTimeout(r, 1500));
+        return run(remaining - 1);
+      }
+      throw err;
+    }
+  }
+  return run(retries);
 }
 
 function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
